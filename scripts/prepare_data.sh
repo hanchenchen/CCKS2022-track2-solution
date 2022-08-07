@@ -6,6 +6,8 @@ mkdir $dst_dir
 cp $src_dir/pair_train.jsonl $dst_dir
 cp $src_dir/pair_val.jsonl $dst_dir
 cp $src_dir/item_train_info.jsonl $dst_dir
+cp $src_dir/item_valid_pair.jsonl $dst_dir
+cp $src_dir/item_valid_info.jsonl $dst_dir
 cp $src_dir/item_test_pair.jsonl $dst_dir
 cp $src_dir/item_test_info.jsonl $dst_dir
 
