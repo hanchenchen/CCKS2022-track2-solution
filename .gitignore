@@ -1,3 +1,6 @@
+*.pth
+*.jsonl
+
 .ipynb_checkpoints/
 __pycache__/
 experiments/
