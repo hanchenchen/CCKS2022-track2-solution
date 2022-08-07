@@ -1,6 +1,7 @@
 .ipynb_checkpoints/
 __pycache__/
 experiments/
+release/
 results/
 tb_logger/
 wandb/
