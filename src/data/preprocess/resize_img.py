@@ -17,7 +17,10 @@ ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 os.makedirs(args.dst_dir, exist_ok=True)
 
-path_list = glob.glob(f"{args.src_dir}/*/*")
+path_list = []
+path_list += glob.glob(f"{args.src_dir}/item_train_images/*")
+path_list += glob.glob(f"{args.src_dir}/item_valid_images/*")
+path_list += glob.glob(f"{args.src_dir}/item_test_images/*")
 print(len(path_list))  # 103452
 suffix_list = [os.path.splitext(path)[-1] for path in path_list]
 print(set(suffix_list))  # {'.bmp', '.jpg', '.SS2', '.gif', '.png', '.jpeg'}
