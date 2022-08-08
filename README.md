@@ -1,5 +1,7 @@
 # Solution for CCKS2022 Track2
 
+![two-model drawio](https://user-images.githubusercontent.com/40779033/183457642-0210f7d9-8695-47ad-aa00-191b5961e24e.svg)
+
 ## Introduction
 
 ### About Training Data
