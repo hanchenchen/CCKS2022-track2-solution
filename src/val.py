@@ -7,7 +7,7 @@ from src.train import parse_options
 
 
 def main():
-    opt = parse_options()
+    opt, args = parse_options()
     seed = opt["manual_seed"]
 
     # create train, validation, test datasets and dataloaders
@@ -25,10 +25,12 @@ def main():
 
     # create model
     model = create_model(opt)
-    for i in opt["val"]["iters"]:
-        model.load_network(model.net, f"experiments/{opt['name']}/models/net_{i}.pth")
-        model.test(val_set, val_loader)
-        model.save_result(i, i, "val")
+    model_path = args.model_path
+    strict_load = args.strict_load
+    test_iter = args.test_iter
+    model.load_network(model.net, model_path, strict_load)
+    model.test(val_set, val_loader)
+    model.save_result(test_iter, test_iter, "test_B", model_path)
 
 
 if __name__ == "__main__":

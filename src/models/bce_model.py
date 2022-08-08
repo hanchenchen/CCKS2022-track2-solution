@@ -214,13 +214,14 @@ class BCEModel(BaseModel):
         # self.save_training_state(epoch, current_iter)
 
     @master_only
-    def save_result(self, epoch, current_iter, label):
-        if current_iter == -1:
-            current_iter = "latest"
-        model_filename = f"net_{current_iter}.pth"
-        model_path = os.path.join(self.opt["path"]["models"], model_filename)
+    def save_result(self, epoch, current_iter, label, model_path=None):
+        if model_path is None:
+            if current_iter == -1:
+                current_iter = "latest"
+            model_filename = f"net_{current_iter}.pth"
+            model_path = os.path.join(self.opt["path"]["models"], model_filename)
 
-        result_path = model_path.replace(".pth", f"_{label}_result.txt")
+        result_path = model_path.replace(".pth", f"_{label}_result.jsonl")
         f = open(result_path, "w")
         for line in self.test_result:
             f.write(json.dumps(line))

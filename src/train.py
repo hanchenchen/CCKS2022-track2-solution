@@ -36,6 +36,14 @@ def parse_options():
     parser.add_argument(
         "-opt", type=str, required=True, help="Path to option YAML file."
     )
+    parser.add_argument("--model_path", type=str, help="Path to pre-trained model.")
+    parser.add_argument(
+        "--strict_load",
+        action="store_true",
+        default=False,
+        help="Load pre-trained model strictly.",
+    )
+    parser.add_argument("--test_iter", type=int, help="Which iter to test.")
     parser.add_argument("--local_rank", type=int, default=0)
     args = parser.parse_args()
     opt = parse(args.opt)
@@ -59,7 +67,7 @@ def parse_options():
         # faster, less reproducible
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
-    return opt
+    return opt, args
 
 
 def init_loggers(opt, prefix, log_level, use_tb_logger):
@@ -80,7 +88,7 @@ def init_loggers(opt, prefix, log_level, use_tb_logger):
 
 
 def main():
-    opt = parse_options()
+    opt, args = parse_options()
     seed = opt["manual_seed"]
 
     # mkdir for experiments and logger
