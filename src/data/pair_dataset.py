@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import torch
+import torchvision.transforms as T
 from torchvision.io import read_image
 from transformers import BertTokenizer
 
@@ -21,9 +22,29 @@ class PairDataset(torch.utils.data.Dataset):
             name = os.path.splitext(name)[0] + ".jpg"
             path = os.path.join(opt["image_dir"], name)
             self.info[item_id]["path"] = path
+
         self.tokenizer = BertTokenizer.from_pretrained(opt["tokenizer"])
         self.max_len = self.opt["max_len"]
         self.key_ps = ["颜色分类", "货号", "型号", "品牌", "尺寸", "口味", "品名", "批准文号", "系列", "尺码"]
+
+        if self.phase == "train":
+            self.transform = T.Compose(
+                [
+                    T.Normalize(
+                        mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225],
+                    ),
+                ]
+            )
+        else:
+            self.transform = T.Compose(
+                [
+                    T.Normalize(
+                        mean=[0.485, 0.456, 0.406],
+                        std=[0.229, 0.224, 0.225],
+                    ),
+                ]
+            )
 
     def __len__(self):
         return len(self.pair)
@@ -89,7 +110,7 @@ class PairDataset(torch.utils.data.Dataset):
         ret.update({"img2": self.get_img(info2)})
 
         if self.phase != "test":
-            label = float(self.pair[idx]["item_label"])
+            label = int(self.pair[idx]["item_label"])
             ret.update({"label": label})
 
         return ret

@@ -2,11 +2,18 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from transformers import BertModel, SwinModel
+from transformers.models.swin.modeling_swin import SwinLayer
+
+from .vl_arch_util import get_attn_mask
 
 
 class VLArch(nn.Module):
     def __init__(self, opt):
         super().__init__()
+
+        if "fp16" in opt and opt["fp16"]:
+            # Hack SwinLayer.get_attn_mask() to support FP16.
+            SwinLayer.get_attn_mask = get_attn_mask
 
         self.txt_encoder1 = BertModel.from_pretrained(opt["bert"])
         self.txt_encoder1.pooler = nn.Identity()

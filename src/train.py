@@ -36,14 +36,14 @@ def parse_options():
     parser.add_argument(
         "-opt", type=str, required=True, help="Path to option YAML file."
     )
-    parser.add_argument("--model_path", type=str, help="Path to pre-trained model.")
-    parser.add_argument(
-        "--strict_load",
-        action="store_true",
-        default=False,
-        help="Load pre-trained model strictly.",
-    )
-    parser.add_argument("--test_iter", type=int, help="Which iter to test.")
+    # parser.add_argument("--model_path", type=str, help="Path to pre-trained model.")
+    # parser.add_argument(
+    #     "--strict_load",
+    #     action="store_true",
+    #     default=False,
+    #     help="Load pre-trained model strictly.",
+    # )
+    # parser.add_argument("--test_iter", type=int, help="Which iter to test.")
     parser.add_argument("--local_rank", type=int, default=0)
     args = parser.parse_args()
     opt = parse(args.opt)
@@ -67,7 +67,8 @@ def parse_options():
         # faster, less reproducible
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
-    return opt, args
+    # return opt, args
+    return opt
 
 
 def init_loggers(opt, prefix, log_level, use_tb_logger):
@@ -88,7 +89,8 @@ def init_loggers(opt, prefix, log_level, use_tb_logger):
 
 
 def main():
-    opt, args = parse_options()
+    # opt, args = parse_options()
+    opt = parse_options()
     seed = opt["manual_seed"]
 
     # mkdir for experiments and logger
@@ -118,45 +120,43 @@ def main():
     logger.info(f"\n\tTotal epochs: {total_epochs}\n\tTotal iters: {total_iters}.")
 
     # create model
-    model = create_model(opt)
-    start_epoch = 0
-    current_iter = 0
+    model = create_model(opt, train_set, val_set, test_set)
+    current_iter = model.current_iter
 
     # create message logger (formatted outputs)
     msg_logger = MessageLogger(opt, current_iter, tb_logger)
 
-    logger.info("Save model")
-    model.save(0, 0)
+    # logger.info("Save model")
+    # model.save_network()
     logger.info("Validate")
-    model.validation(val_loader, current_iter, tb_logger)
+    model.dist_validation(val_loader, tb_logger)
     # logger.info("Test")
-    # model.test(test_set, test_loader)
-    # model.save_result(0, 0, "test")
+    # model.test(test_loader)
+    # model.save_result("test")
 
     # training
-    logger.info(f"Start training from epoch: {start_epoch}, iter: {current_iter}")
-    data_time, iter_time = time.time(), time.time()
+    logger.info(f"Start training")
     start_time = time.time()
 
-    for epoch in range(start_epoch, total_epochs + 1):
-        train_loader.sampler.set_epoch(epoch)
+    for current_epoch in range(1, total_epochs + 1):
+        model.set_current_epoch(current_epoch)
+        train_loader.sampler.set_epoch(current_epoch)
+        data_time = time.time()
+        iter_time = time.time()
         for train_data in train_loader:
             data_time = time.time() - data_time
 
             current_iter += 1
+            model.set_current_iter(current_iter)
             if current_iter > total_iters:
                 break
-            # update learning rate
-            model.update_learning_rate(
-                current_iter, warmup_iter=opt["train"].get("warmup_iter", -1)
-            )
             # training
             model.feed_data(train_data, train=True)
-            model.optimize_parameters(current_iter)
+            model.optimize_parameters()
             iter_time = time.time() - iter_time
             # log
             if current_iter % opt["logger"]["print_freq"] == 0:
-                log_vars = {"epoch": epoch, "iter": current_iter}
+                log_vars = {"epoch": current_epoch, "iter": current_iter}
                 log_vars.update({"lrs": model.get_current_learning_rate()})
                 log_vars.update({"time": iter_time, "data_time": data_time})
                 log_vars.update(model.get_current_log())
@@ -164,24 +164,15 @@ def main():
             # save model, validation and test
             if current_iter % opt["logger"]["save_checkpoint_freq"] == 0:
                 logger.info("Save model")
-                model.save(epoch, current_iter)
+                model.save_network()
                 logger.info("Validate")
-                model.validation(val_loader, current_iter, tb_logger)
+                model.dist_validation(val_loader, tb_logger)
                 # logger.info("Test")
-                # model.test(test_set, test_loader)
-                # model.save_result(epoch, current_iter, "test")
+                # model.test(test_loader)
+                # model.save_result("test")
             data_time = time.time()
             iter_time = time.time()
-        # end of iter
-    # end of epoch
 
-    logger.info("Save model")
-    model.save(-1, -1)  # -1 stands for the latest
-    logger.info("Validate")
-    model.validation(val_loader, current_iter, tb_logger)
-    # logger.info("Test")
-    # model.test(test_set, test_loader)
-    # model.save_result(-1, -1, "test")
     if tb_logger is not None:
         tb_logger.close()
     consumed_time = str(datetime.timedelta(seconds=int(time.time() - start_time)))

@@ -3,59 +3,51 @@ import os
 from collections import OrderedDict
 from copy import deepcopy
 
+import deepspeed
 import torch
 import torch.distributed as dist
 import torch.nn.functional as F
-import torchvision.transforms as T
 from tqdm import tqdm
 
 from src.archs import define_network
 from src.metrics import cal_metric
+from src.models import lr_scheduler
 from src.models.base_model import BaseModel
 from src.utils import get_root_logger, master_only
 
+from .util import fp32_to_fp16, print_network
+
 
 class BCEModel(BaseModel):
-    def __init__(self, opt):
+    def __init__(self, opt, train_set, val_set, test_set):
         super(BCEModel, self).__init__(opt)
 
         # define network
         self.net = define_network(deepcopy(opt["network"]))
-        self.net = self.model_to_device(self.net)
-        self.print_network(self.net)
-
         # load pretrained models
-        load_path = self.opt["path"].get("pretrain_network", None)
-        if load_path is not None:
-            self.load_network(
-                self.net, load_path, self.opt["path"].get("strict_load", True)
-            )
+        load_path = self.opt["path"]["pretrain_network"]
+        # TODO
 
+        self.net = self.net.to(self.device)
         self.init_training_settings()
 
-        self.transform_train = T.Compose(
-            [
-                T.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                ),
-            ]
+        self.net, self.optimizer, _, _ = deepspeed.initialize(
+            config_params=opt["deepspeed"],
+            model=self.net,
+            optimizer=self.optimizer,
+            lr_scheduler=self.scheduler,
         )
-        self.transform_val = T.Compose(
-            [
-                T.Normalize(
-                    mean=[0.485, 0.456, 0.406],
-                    std=[0.229, 0.224, 0.225],
-                ),
-            ]
-        )
+        print_network(self.net)
+
+        self.transform_train = train_set.transform
+        self.transform_val = val_set.transform
 
     def init_training_settings(self):
         self.net.train()
-        self.setup_optimizers()
-        self.setup_schedulers()
+        self.setup_optimizer()
+        self.setup_scheduler()
 
-    def setup_optimizers(self):
+    def setup_optimizer(self):
         train_opt = self.opt["train"]
         optim_type = train_opt["optim"].pop("type")
         if optim_type == "Adam":
@@ -68,7 +60,23 @@ class BCEModel(BaseModel):
             )
         else:
             raise NotImplementedError(f"optimizer {optim_type} is not supperted yet.")
-        self.optimizers.append(self.optimizer)
+
+    def setup_scheduler(self):
+        """Set up schedulers."""
+        train_opt = self.opt["train"]
+        scheduler_type = train_opt["scheduler"].pop("type")
+        if scheduler_type in ["MultiStepLR", "MultiStepRestartLR"]:
+            self.scheduler = lr_scheduler.MultiStepRestartLR(
+                self.optimizer, **train_opt["scheduler"]
+            )
+        elif scheduler_type == "CosineAnnealingRestartLR":
+            self.scheduler = lr_scheduler.CosineAnnealingRestartLR(
+                self.optimizer, **train_opt["scheduler"]
+            )
+        else:
+            raise NotImplementedError(
+                f"Scheduler {scheduler_type} is not implemented yet."
+            )
 
     def feed_data(self, data, train):
         if "img1" in data:
@@ -77,26 +85,36 @@ class BCEModel(BaseModel):
                 self.img1 = self.transform_train(self.img1)
             else:
                 self.img1 = self.transform_val(self.img1)
+            if self.opt["deepspeed"]["fp16"]["enabled"]:
+                self.img1 = fp32_to_fp16(self.img1)
         if "img2" in data:
             self.img2 = data["img2"].to(self.device, non_blocking=True).float() / 255.0
             if train:
                 self.img2 = self.transform_train(self.img2)
             else:
                 self.img2 = self.transform_val(self.img2)
+            if self.opt["deepspeed"]["fp16"]["enabled"]:
+                self.img2 = fp32_to_fp16(self.img2)
         if "txt1" in data:
             self.txt1 = {}
             for k in data["txt1"]:
                 self.txt1[k] = (
                     data["txt1"][k].to(self.device, non_blocking=True).squeeze(1)
                 )
+                if self.opt["deepspeed"]["fp16"]["enabled"]:
+                    self.txt1[k] = fp32_to_fp16(self.txt1[k])
         if "txt2" in data:
             self.txt2 = {}
             for k in data["txt2"]:
                 self.txt2[k] = (
                     data["txt2"][k].to(self.device, non_blocking=True).squeeze(1)
                 )
+                if self.opt["deepspeed"]["fp16"]["enabled"]:
+                    self.txt2[k] = fp32_to_fp16(self.txt2[k])
         if "label" in data:
             self.label = data["label"].to(self.device, non_blocking=True)
+            if self.opt["deepspeed"]["fp16"]["enabled"]:
+                self.label = fp32_to_fp16(self.label)
 
     def forward(self):
         feat11, feat12 = self.net(self.txt1, self.img1)
@@ -112,7 +130,7 @@ class BCEModel(BaseModel):
 
         return logit, feat1, feat2
 
-    def optimize_parameters(self, current_iter):
+    def optimize_parameters(self):
         self.optimizer.zero_grad()
 
         l_total = 0
@@ -120,7 +138,7 @@ class BCEModel(BaseModel):
 
         logit, _, _ = self.forward()
 
-        l_bce = F.cross_entropy(logit, self.label.long())
+        l_bce = F.cross_entropy(logit, self.label)
         l_total += l_bce
         loss_dict["l_bce"] = l_bce
 
@@ -130,19 +148,18 @@ class BCEModel(BaseModel):
         loss_dict["R"] = R * torch.ones_like(l_bce)
         loss_dict["acc"] = acc * torch.ones_like(l_bce)
 
-        l_total.backward()
-        torch.nn.utils.clip_grad_norm_(
-            self.net.parameters(), self.opt["train"]["grad_clip_norm"]
-        )
-        self.optimizer.step()
+        self.net.backward(l_total)
+        self.net.step()
 
         self.log_dict = self.reduce_loss_dict(loss_dict)
 
     @torch.no_grad()
-    def dist_validation(self, dataloader, current_iter, tb_logger):
+    def dist_validation(self, dataloader, tb_logger):
         logits = torch.zeros((10000, 2)).to(self.device)
-        labels = torch.zeros((10000)).to(self.device)
-        valid = torch.zeros((10000)).to(self.device)
+        if self.opt["deepspeed"]["fp16"]["enabled"]:
+            logits = fp32_to_fp16(logits)
+        labels = torch.zeros((10000)).to(self.device).long()
+        valid = torch.zeros((10000)).to(self.device).long()
         last = 0
         self.net.eval()
         for i, data in tqdm(enumerate(dataloader)):
@@ -171,14 +188,14 @@ class BCEModel(BaseModel):
         labels = labels[valid == 1]
         print(1, logits.shape, labels.shape)
 
-        acc, P, R, f1 = cal_metric(logits, labels.long())
+        acc, P, R, f1 = cal_metric(logits, labels)
         logger = get_root_logger()
         logger.info(f"f1: {f1:.4f}, P: {P:.4f}, R: {R:.4f}, acc: {acc:.4f}")
         if dist.get_rank() == 0:
-            tb_logger.add_scalar(f"metrics/f1", f1, current_iter)
-            tb_logger.add_scalar(f"metrics/P", P, current_iter)
-            tb_logger.add_scalar(f"metrics/R", R, current_iter)
-            tb_logger.add_scalar(f"metrics/acc", acc, current_iter)
+            tb_logger.add_scalar(f"metrics/f1", f1, self.current_iter)
+            tb_logger.add_scalar(f"metrics/P", P, self.current_iter)
+            tb_logger.add_scalar(f"metrics/R", R, self.current_iter)
+            tb_logger.add_scalar(f"metrics/acc", acc, self.current_iter)
 
     @torch.no_grad()
     def test(self, dataset, dataloader):
@@ -209,16 +226,13 @@ class BCEModel(BaseModel):
             self.test_result.append(d)
         print(2, len(self.test_result))
 
-    def save(self, epoch, current_iter):
-        self.save_network(self.net, "net", current_iter)
-        # self.save_training_state(epoch, current_iter)
+    def save_network(self):
+        self.net.save_checkpoint(self.opt["path"]["models"])
 
     @master_only
-    def save_result(self, epoch, current_iter, label, model_path=None):
+    def save_result(self, label, model_path=None):
         if model_path is None:
-            if current_iter == -1:
-                current_iter = "latest"
-            model_filename = f"net_{current_iter}.pth"
+            model_filename = f"iter_{self.current_iter}.pth"
             model_path = os.path.join(self.opt["path"]["models"], model_filename)
 
         result_path = model_path.replace(".pth", f"_{label}_result.jsonl")

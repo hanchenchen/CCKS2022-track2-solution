@@ -29,6 +29,17 @@ def ordered_yaml():
     return Loader, Dumper
 
 
+def update_deepspeed_config(opt):
+    ds_opt = opt["deepspeed"]
+    ds_opt["train_micro_batch_size_per_gpu"] = opt["datasets"]["train"][
+        "batch_size_per_gpu"
+    ]
+    ds_opt["gradient_clipping"] = opt["train"]["grad_clip_norm"]
+    ds_opt["steps_per_print"] = 1e9
+    opt["deepspeed"] = ds_opt
+    return opt
+
+
 def parse(opt_path):
     """Parse option file.
 
@@ -42,22 +53,18 @@ def parse(opt_path):
         Loader, _ = ordered_yaml()
         opt = yaml.load(f, Loader=Loader)
 
-    opt["path"]["root"] = osp.abspath(
-        osp.join(__file__, osp.pardir, osp.pardir, osp.pardir)
-    )
+    opt = update_deepspeed_config(opt)
+
+    # opt["path"]["root"] = osp.abspath(
+    #     osp.join(__file__, osp.pardir, osp.pardir, osp.pardir)
+    # )
+    opt["path"]["root"] = "/workspace/raid_han/jh/CCKS2"
     experiments_root = osp.join(opt["path"]["root"], "experiments", opt["name"])
     opt["path"]["experiments_root"] = experiments_root
     opt["path"]["models"] = osp.join(experiments_root, "models")
     opt["path"]["tb_logger"] = osp.join(experiments_root, "tb_logger")
     opt["path"]["log"] = experiments_root
 
-    if "debug" in opt["name"]:
-        opt["train"]["total_iter"] = 20
-        opt["logger"]["print_freq"] = 1
-        opt["logger"]["save_checkpoint_freq"] = 10
-        opt["logger"]["wandb"] = None
-        # for k in opt["datasets"]:
-        #     opt["datasets"][k]["num_worker_per_gpu"] = 0
     return opt
 
 
