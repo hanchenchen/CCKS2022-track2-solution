@@ -68,7 +68,7 @@
 
 ### Docker
 
-- We recommend to use our established docker image [ccks-2022](registry.cn-hangzhou.aliyuncs.com/ccks-2022/ccks-2022), which also includes our preprocessed data.
+- We recommend to use our established docker image [ccks-2022](registry.cn-hangzhou.aliyuncs.com/ccks-2022/ccks-2022:v1.0), which also includes our preprocessed data.
 
 ### Pip
 
@@ -83,7 +83,7 @@ pip install -r requirements.txt
 
 ### Docker
 
-- Our docker image [ccks-2022](registry.cn-hangzhou.aliyuncs.com/ccks-2022/ccks-2022) includes our preprocessed data, which is relatively smaller and easier to download.
+- Our docker image [ccks-2022](registry.cn-hangzhou.aliyuncs.com/ccks-2022/ccks-2022:v1.0) includes our preprocessed data, which is relatively smaller and easier to download.
 
 ### Download and Preprocess manually
 
