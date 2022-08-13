@@ -7,7 +7,7 @@ from src.train import parse_options
 
 
 def main():
-    opt, args = parse_options()
+    opt = parse_options()
     seed = opt["manual_seed"]
 
     # create train, validation, test datasets and dataloaders
@@ -24,13 +24,10 @@ def main():
     )
 
     # create model
-    model = create_model(opt)
-    model_path = args.model_path
-    strict_load = args.strict_load
-    test_iter = args.test_iter
-    model.load_network(model.net, model_path, strict_load)
+    assert opt["path"]["pretrain_network"] is not None
+    model = create_model(opt, train_set, val_set, test_set)
     model.test(test_set, test_loader)
-    model.save_result(test_iter, test_iter, "test_B", model_path)
+    model.save_result("test_B", opt["path"]["pretrain_network"])
 
 
 if __name__ == "__main__":

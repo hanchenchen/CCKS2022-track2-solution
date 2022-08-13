@@ -36,14 +36,6 @@ def parse_options():
     parser.add_argument(
         "-opt", type=str, required=True, help="Path to option YAML file."
     )
-    # parser.add_argument("--model_path", type=str, help="Path to pre-trained model.")
-    # parser.add_argument(
-    #     "--strict_load",
-    #     action="store_true",
-    #     default=False,
-    #     help="Load pre-trained model strictly.",
-    # )
-    # parser.add_argument("--test_iter", type=int, help="Which iter to test.")
     parser.add_argument("--local_rank", type=int, default=0)
     args = parser.parse_args()
     opt = parse(args.opt)
@@ -67,7 +59,6 @@ def parse_options():
         # faster, less reproducible
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
-    # return opt, args
     return opt
 
 
@@ -89,7 +80,6 @@ def init_loggers(opt, prefix, log_level, use_tb_logger):
 
 
 def main():
-    # opt, args = parse_options()
     opt = parse_options()
     seed = opt["manual_seed"]
 
@@ -130,9 +120,6 @@ def main():
     # model.save_network()
     logger.info("Validate")
     model.dist_validation(val_loader, tb_logger)
-    # logger.info("Test")
-    # model.test(test_loader)
-    # model.save_result("test")
 
     # training
     logger.info(f"Start training")
@@ -167,9 +154,6 @@ def main():
                 model.save_network()
                 logger.info("Validate")
                 model.dist_validation(val_loader, tb_logger)
-                # logger.info("Test")
-                # model.test(test_loader)
-                # model.save_result("test")
             data_time = time.time()
             iter_time = time.time()
 

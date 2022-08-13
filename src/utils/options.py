@@ -55,10 +55,9 @@ def parse(opt_path):
 
     opt = update_deepspeed_config(opt)
 
-    # opt["path"]["root"] = osp.abspath(
-    #     osp.join(__file__, osp.pardir, osp.pardir, osp.pardir)
-    # )
-    opt["path"]["root"] = "/workspace/raid_han/jh/CCKS2"
+    opt["path"]["root"] = osp.abspath(
+        osp.join(__file__, osp.pardir, osp.pardir, osp.pardir)
+    )
     experiments_root = osp.join(opt["path"]["root"], "experiments", opt["name"])
     opt["path"]["experiments_root"] = experiments_root
     opt["path"]["models"] = osp.join(experiments_root, "models")

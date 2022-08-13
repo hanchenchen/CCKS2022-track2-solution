@@ -24,9 +24,6 @@ class BCEModel(BaseModel):
 
         # define network
         self.net = define_network(deepcopy(opt["network"]))
-        # load pretrained models
-        load_path = self.opt["path"]["pretrain_network"]
-        # TODO
 
         self.net = self.net.to(self.device)
         self.init_training_settings()
@@ -38,6 +35,14 @@ class BCEModel(BaseModel):
             lr_scheduler=self.scheduler,
         )
         print_network(self.net)
+
+        # load pretrained models
+        load_path = opt["path"]["pretrain_network"]
+        if load_path is not None:
+            self.net.load_checkpoint(
+                os.path.dirname(os.path.dirname(load_path)),
+                os.path.basename(os.path.dirname(load_path)),
+            )
 
         self.transform_train = train_set.transform
         self.transform_val = val_set.transform
@@ -230,12 +235,8 @@ class BCEModel(BaseModel):
         self.net.save_checkpoint(self.opt["path"]["models"])
 
     @master_only
-    def save_result(self, label, model_path=None):
-        if model_path is None:
-            model_filename = f"iter_{self.current_iter}.pth"
-            model_path = os.path.join(self.opt["path"]["models"], model_filename)
-
-        result_path = model_path.replace(".pth", f"_{label}_result.jsonl")
+    def save_result(self, label, model_path):
+        result_path = model_path.replace(".pt", f"_{label}_result.jsonl")
         f = open(result_path, "w")
         for line in self.test_result:
             f.write(json.dumps(line))
