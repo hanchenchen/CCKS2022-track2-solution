@@ -1,8 +1,13 @@
 # Solution for CCKS2022 Track2
 
-![two-model drawio](https://user-images.githubusercontent.com/40779033/183457642-0210f7d9-8695-47ad-aa00-191b5961e24e.svg)
+## 🌟 Introduction
+This is the third place solution for the [2nd Task](https://tianchi.aliyun.com/competition/entrance/531956/introduction) of the CCKS-2022 Digital Business Knowledge Map Assessment Competition. 
 
-## Introduction
+📃Paper: "[Multi-Modal Representation Learning with Self-Adaptive Thresholds for Commodity Verification](https://arxiv.org/abs/2208.11064)"
+
+<p align="center">
+    <img width="80%" alt="model" src="https://github.com/hanchenchen/CCKS2022-track2-solution/files/9416232/figure1.pdf">
+</p>
 
 ### About Training Data
 
@@ -40,23 +45,23 @@
 |   Train   | Full steps, 100k iters, ~23 hours<br />Peak performance, 64k iters, ~15 hours |   ~42GB    |
 | Inference | ~7 minutes                                                   |   ~16GB    |
 
-> We will try to train with FP16 to reduce training time and GPU memory.
+> Train with FP16: [FP16-version](https://github.com/hanchenchen/CCKS2022-track2-solution/tree/FP16)
 
-## Updates
+## 🐾 Updates
 
-- 
+- Add emojis
 
-## TODO
+## 🚧 TODO
 
 - [x] Docker image
 - [x] Pre-trained models
 - [x] Logs
 - [x] Results
-- [ ] Figure
-- [ ] FP16
-- [ ] Emoji
+- [x] Figure
+- [x] FP16
+- [x] Emoji
 
-## Model Zoo
+## 🏪 Model Zoo
 
 |                            Model                             | Threshold |      Val<br />F1 / P / R       |     Test A<br />F1 / P / R     |                    Test B<br />F1 / P / R                    |                         Training Log                         |                             YAML                             |
 | :----------------------------------------------------------: | :-------: | :----------------------------: | :----------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: | :----------------------------------------------------------: |
@@ -64,7 +69,7 @@
 |                                                              |   1.65    |               -                |               -                | [0.8936<br />0.8970<br />0.8902](https://github.com/hanchenchen/CCKS2022-track2-solution/releases/download/1.0/63_grad_clip_norm_0.5_net_64000_test_B_result_thres_1.65.jsonl) |                                                              |                                                              |
 | [64_grad_clip_norm_0.1_net_60000.pth](https://github.com/hanchenchen/CCKS2022-track2-solution/releases/tag/1.0) |     0     | 0.8753<br />0.9002<br />0.8517 | 0.8910<br />0.8901<br />0.8919 | [0.8933<br />0.8933<br />0.8933](https://github.com/hanchenchen/CCKS2022-track2-solution/releases/download/1.0/64_grad_clip_norm_0.1_net_60000_test_B_result_thres_0.jsonl) | [log](https://github.com/hanchenchen/CCKS2022-track2-solution/releases/download/1.0/64_grad_clip_norm_0.1.log) | [yaml](https://github.com/hanchenchen/CCKS2022-track2-solution/blob/master/options/64_grad_clip_norm_0.1.yml) |
 
-## Environment Setup
+## 🪄 Environment Setup
 
 ### Docker
 
@@ -79,7 +84,7 @@
 pip install -r requirements.txt
 ```
 
-## Dataset Preparation
+## 🗺 Dataset Preparation
 
 ### Docker
 
@@ -100,17 +105,34 @@ bash scripts/resize_img.sh
 bash scripts/prepare_data.sh
 ```
 
-## Train
+## 🚄 Train
 
 ```bash
 bash train.sh
 ```
 
-## Test
+## 📋 Test
 
 Due to the file size limit of GitHub Release, we have to split the checkpoint. Please download [63_grad_clip_norm_0.5_net_64000.pth.partaa](https://github.com/hanchenchen/CCKS2022-track2-solution/releases/download/1.0/63_grad_clip_norm_0.5_net_64000.pth.partaa) and [63_grad_clip_norm_0.5_net_64000.pth.partab](https://github.com/hanchenchen/CCKS2022-track2-solution/releases/download/1.0/63_grad_clip_norm_0.5_net_64000.pth.partab) to this repo and run
 
 ```bash
 cat 63_grad_clip_norm_0.5_net_64000.pth.part* > 63_grad_clip_norm_0.5_net_64000.pth
 bash predict.sh
+```
+
+##  📝Citations
+
+If it helps your research or work, please consider citing our paper.
+The following is a BibTeX reference. 
+```
+  @misc{https://doi.org/10.48550/arxiv.2208.11064,
+    doi = {10.48550/ARXIV.2208.11064},
+    url = {https://arxiv.org/abs/2208.11064},
+    author = {Han Chenchen and Jia Heng},
+    keywords = {Machine Learning (cs.LG), FOS: Computer and information sciences, FOS: Computer and information sciences},
+    title = {Multi-Modal Representation Learning with Self-Adaptive Thresholds for Commodity Verification},
+    publisher = {arXiv},
+    year = {2022},
+    copyright = {arXiv.org perpetual, non-exclusive license}
+  }
 ```
