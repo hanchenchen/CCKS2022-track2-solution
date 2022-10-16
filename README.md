@@ -6,8 +6,10 @@ This is the third place solution for the [2nd Task](https://tianchi.aliyun.com/c
 📃Paper: "[Multi-Modal Representation Learning with Self-Adaptive Thresholds for Commodity Verification](https://arxiv.org/abs/2208.11064)"
 
 <p align="center">
-    <img width="80%" alt="model" src="https://github.com/hanchenchen/CCKS2022-track2-solution/files/9416232/figure1.pdf">
+    <img width="50%" alt="model" src="https://github.com/hanchenchen/CCKS2022-track2-solution/files/9416232/figure1.pdf">
+    <img width="30%" alt="similarity-pos-neg-sat" src="https://github.com/hanchenchen/CCKS2022-track2-solution/files/9794026/similarity-pos-neg-63.pdf">
 </p>
+
 
 ### About Training Data
 
