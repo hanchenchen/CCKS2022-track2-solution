@@ -6,10 +6,9 @@ This is the third place solution for the [2nd Task](https://tianchi.aliyun.com/c
 📃Paper: "[Multi-Modal Representation Learning with Self-Adaptive Thresholds for Commodity Verification](https://arxiv.org/abs/2208.11064)"
 
 <p align="center">
-    <img width="50%" alt="model" src="https://github.com/hanchenchen/CCKS2022-track2-solution/files/9416232/figure1.pdf">
-    <img width="30%" alt="similarity-pos-neg-sat" src="https://github.com/hanchenchen/CCKS2022-track2-solution/files/9794026/similarity-pos-neg-63.pdf">
+    <img width="50%" alt="model" src="imgs/network_structure.png">
+    <img width="30%" alt="similarity-pos-neg-sat" src="imgs/score_distribution.png">
 </p>
-
 
 ### About Training Data
 
@@ -75,7 +74,11 @@ This is the third place solution for the [2nd Task](https://tianchi.aliyun.com/c
 
 ### Docker
 
-- We recommend to use our established docker image [ccks-2022](registry.cn-hangzhou.aliyuncs.com/ccks-2022/ccks-2022:v1.0), which also includes our preprocessed data.
+- We recommend to use our established docker image, which also includes our preprocessed data.
+
+```bash
+docker pull registry.cn-hangzhou.aliyuncs.com/ccks-2022/ccks-2022:v1.0
+```
 
 ### Pip
 
@@ -90,7 +93,11 @@ pip install -r requirements.txt
 
 ### Docker
 
-- Our docker image [ccks-2022](registry.cn-hangzhou.aliyuncs.com/ccks-2022/ccks-2022:v1.0) includes our preprocessed data, which is relatively smaller and easier to download.
+- Our docker image includes our preprocessed data, which is relatively smaller and easier to download.
+
+```bash
+docker pull registry.cn-hangzhou.aliyuncs.com/ccks-2022/ccks-2022:v1.0
+```
 
 ### Download and Preprocess manually
 
